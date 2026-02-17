@@ -15,6 +15,7 @@ TAG="v${VERSION}"
 ASSET="database.db.gz"
 OUTPUT="data/database.db"
 TMP_OUTPUT="${OUTPUT}.tmp"
+BUNDLED_GZ="data/database.db.gz"
 
 download_public_release_asset() {
   local url
@@ -69,6 +70,15 @@ fi
 
 mkdir -p "$(dirname "$OUTPUT")"
 rm -f "$TMP_OUTPUT"
+
+if [ -f "$BUNDLED_GZ" ]; then
+  echo "[download-db] Using bundled database archive at $BUNDLED_GZ"
+  gunzip -c "$BUNDLED_GZ" > "$TMP_OUTPUT"
+  mv "$TMP_OUTPUT" "$OUTPUT"
+  SIZE=$(ls -lh "$OUTPUT" | awk '{print $5}')
+  echo "[download-db] Database ready: $OUTPUT ($SIZE)"
+  exit 0
+fi
 
 if ! download_public_release_asset; then
   rm -f "$TMP_OUTPUT"
