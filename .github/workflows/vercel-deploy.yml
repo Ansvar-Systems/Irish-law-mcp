@@ -46,5 +46,5 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          GITHUB_TOKEN: ${{ github.token }}
-        run: vercel deploy --prod --yes --token="$VERCEL_TOKEN" --build-env GITHUB_TOKEN="$GITHUB_TOKEN"
+          GH_RELEASE_TOKEN: ${{ github.token }}
+        run: vercel deploy --prod --yes --token="$VERCEL_TOKEN" --build-env GH_RELEASE_TOKEN="$GH_RELEASE_TOKEN"

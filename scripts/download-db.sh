@@ -25,7 +25,10 @@ download_public_release_asset() {
 }
 
 download_private_release_asset() {
-  if [ -z "${GITHUB_TOKEN:-}" ]; then
+  local auth_token
+  auth_token="${GH_RELEASE_TOKEN:-${GITHUB_TOKEN:-}}"
+
+  if [ -z "$auth_token" ]; then
     return 1
   fi
 
@@ -36,7 +39,7 @@ download_private_release_asset() {
   local asset_api_url
   asset_api_url="$(
     curl -fsSL \
-      -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+      -H "Authorization: Bearer ${auth_token}" \
       -H "Accept: application/vnd.github+json" \
       "$release_api" \
       | node -e "
@@ -53,7 +56,7 @@ download_private_release_asset() {
   )"
 
   curl -fsSL \
-    -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+    -H "Authorization: Bearer ${auth_token}" \
     -H "Accept: application/octet-stream" \
     "$asset_api_url" | gunzip > "$TMP_OUTPUT"
 }
@@ -71,7 +74,7 @@ if ! download_public_release_asset; then
   rm -f "$TMP_OUTPUT"
   if ! download_private_release_asset; then
     echo "[download-db] Failed to download ${ASSET} for tag ${TAG}."
-    echo "[download-db] Ensure the release asset exists and set GITHUB_TOKEN for private repos."
+    echo "[download-db] Ensure the release asset exists and set GH_RELEASE_TOKEN (or GITHUB_TOKEN) for private repos."
     exit 1
   fi
 fi
