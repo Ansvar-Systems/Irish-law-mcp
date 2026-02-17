@@ -140,7 +140,7 @@ let db: InstanceType<typeof Database>;
 // Contract test runner
 // ---------------------------------------------------------------------------
 
-describe(`Contract tests: ${fixture.mcp_name}`, () => {
+describe.sequential(`Contract tests: ${fixture.mcp_name}`, () => {
   beforeAll(async () => {
     const dbPath =
       process.env['IRISH_LAW_DB_PATH'] ?? join(__dirname, '..', '..', 'data', 'database.db');
@@ -168,17 +168,21 @@ describe(`Contract tests: ${fixture.mcp_name}`, () => {
 
   for (const test of fixture.tests) {
     describe(`[${test.id}] ${test.description}`, () => {
-      let result: ToolResult;
+      let resultPromise: Promise<ToolResult> | undefined;
+      const ensureResult = (): Promise<ToolResult> => {
+        resultPromise ??= callTool(mcpClient, test.tool, test.input);
+        return resultPromise;
+      };
 
       it('runs without throwing', async () => {
-        result = await callTool(mcpClient, test.tool, test.input);
+        const result = await ensureResult();
         expect(result).toBeDefined();
         expect(result.tool).toBe(test.tool);
       });
 
       if (test.assertions.result_not_empty) {
         it('result is not empty', async () => {
-          result ??= await callTool(mcpClient, test.tool, test.input);
+          const result = await ensureResult();
           if (result.ok) {
             expect(result.data).toBeDefined();
           } else {
@@ -190,7 +194,7 @@ describe(`Contract tests: ${fixture.mcp_name}`, () => {
       if (test.assertions.text_contains) {
         for (const needle of test.assertions.text_contains) {
           it(`result contains text "${needle}"`, async () => {
-            result ??= await callTool(mcpClient, test.tool, test.input);
+            const result = await ensureResult();
             const haystack = stringifyData(result.data).toLowerCase();
             expect(haystack).toContain(needle.toLowerCase());
           });
@@ -200,7 +204,7 @@ describe(`Contract tests: ${fixture.mcp_name}`, () => {
       if (test.assertions.any_result_contains) {
         for (const needle of test.assertions.any_result_contains) {
           it(`any result item contains "${needle}"`, async () => {
-            result ??= await callTool(mcpClient, test.tool, test.input);
+            const result = await ensureResult();
             const haystack = stringifyData(result.data).toLowerCase();
             expect(haystack).toContain(needle.toLowerCase());
           });
@@ -209,7 +213,7 @@ describe(`Contract tests: ${fixture.mcp_name}`, () => {
 
       if (test.assertions.fields_present) {
         it(`result has fields: ${test.assertions.fields_present.join(', ')}`, async () => {
-          result ??= await callTool(mcpClient, test.tool, test.input);
+          const result = await ensureResult();
           expect(result.ok).toBe(true);
           const data = result.data as Record<string, unknown>;
           expect(data).toBeDefined();
@@ -221,7 +225,7 @@ describe(`Contract tests: ${fixture.mcp_name}`, () => {
 
       if (test.assertions.text_not_empty) {
         it('result text is not empty', async () => {
-          result ??= await callTool(mcpClient, test.tool, test.input);
+          const result = await ensureResult();
           const text = stringifyData(result.data);
           expect(text.trim().length).toBeGreaterThan(0);
         });
@@ -229,7 +233,7 @@ describe(`Contract tests: ${fixture.mcp_name}`, () => {
 
       if (test.assertions.min_results !== undefined) {
         it(`returns at least ${test.assertions.min_results} results`, async () => {
-          result ??= await callTool(mcpClient, test.tool, test.input);
+          const result = await ensureResult();
           const data = result.data;
           const items = Array.isArray(data)
             ? data
@@ -242,7 +246,7 @@ describe(`Contract tests: ${fixture.mcp_name}`, () => {
 
       if (test.assertions.citation_url_pattern) {
         it(`citation URLs match pattern: ${test.assertions.citation_url_pattern}`, async () => {
-          result ??= await callTool(mcpClient, test.tool, test.input);
+          const result = await ensureResult();
           const urls = extractCitationUrls(result.data);
           const pattern = new RegExp(test.assertions.citation_url_pattern!);
           expect(urls.length).toBeGreaterThan(0);
@@ -271,7 +275,7 @@ describe(`Contract tests: ${fixture.mcp_name}`, () => {
         it.skipIf(!isNightly)(
           'citation URLs resolve (HTTP 200)',
           async () => {
-            result ??= await callTool(mcpClient, test.tool, test.input);
+            const result = await ensureResult();
             const urls = extractCitationUrls(result.data);
             expect(urls.length).toBeGreaterThan(0);
             for (const url of urls) {
@@ -287,7 +291,7 @@ describe(`Contract tests: ${fixture.mcp_name}`, () => {
 
       if (test.assertions.handles_gracefully) {
         it('handles gracefully (no unhandled exception)', async () => {
-          result ??= await callTool(mcpClient, test.tool, test.input);
+          const result = await ensureResult();
           expect(result.tool).toBe(test.tool);
         });
       }

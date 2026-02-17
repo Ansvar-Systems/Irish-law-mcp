@@ -16,6 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const SEED_DIR = path.resolve(__dirname, '../data/seed');
+const EU_REFERENCE_SEED_PATH = path.resolve(__dirname, '../data/source/eu-references.json');
 const DB_PATH = path.resolve(__dirname, '../data/database.db');
 
 // ─── Seed file types ─────────────────────────────────────────────────────────
@@ -44,6 +45,39 @@ interface ProvisionSeed {
   order_index?: number;
   valid_from?: string;
   valid_to?: string;
+}
+
+interface EUDocumentSeed {
+  id: string;
+  type: 'directive' | 'regulation';
+  year: number;
+  number: number;
+  community: 'EU' | 'EC' | 'EEC' | 'Euratom';
+  celex_number?: string;
+  title?: string;
+  short_name?: string;
+  url_eur_lex?: string;
+  in_force?: boolean;
+  amended_by?: string;
+  repeals?: string;
+}
+
+interface EUReferenceSeed {
+  document_id: string;
+  eu_document_id: string;
+  provision_ref?: string;
+  eu_article?: string;
+  reference_type?: 'implements' | 'supplements' | 'applies' | 'cites' | 'cites_article';
+  is_primary_implementation?: boolean;
+  implementation_status?: 'full' | 'partial' | 'pending' | 'unknown';
+  full_citation?: string;
+  reference_context?: string;
+}
+
+interface EUReferenceSeedFile {
+  version: string;
+  eu_documents: EUDocumentSeed[];
+  references: EUReferenceSeed[];
 }
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
@@ -183,6 +217,26 @@ function dedupeProvisions(provisions: ProvisionSeed[]): ProvisionSeed[] {
   return Array.from(byRef.values());
 }
 
+function loadEUReferenceSeed(): EUReferenceSeedFile {
+  if (!fs.existsSync(EU_REFERENCE_SEED_PATH)) {
+    return { version: '1.0', eu_documents: [], references: [] };
+  }
+
+  try {
+    const content = fs.readFileSync(EU_REFERENCE_SEED_PATH, 'utf-8');
+    const parsed = JSON.parse(content) as Partial<EUReferenceSeedFile>;
+    return {
+      version: parsed.version ?? '1.0',
+      eu_documents: Array.isArray(parsed.eu_documents) ? parsed.eu_documents : [],
+      references: Array.isArray(parsed.references) ? parsed.references : [],
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`WARNING: Failed to load EU seed file (${EU_REFERENCE_SEED_PATH}): ${message}`);
+    return { version: '1.0', eu_documents: [], references: [] };
+  }
+}
+
 // ─── Build ───────────────────────────────────────────────────────────────────
 
 function buildDatabase(): void {
@@ -214,6 +268,28 @@ function buildDatabase(): void {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
+  const insertEUDocument = db.prepare(`
+    INSERT OR IGNORE INTO eu_documents (
+      id, type, year, number, community, celex_number, title, short_name, url_eur_lex, in_force, amended_by, repeals
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const insertEUReference = db.prepare(`
+    INSERT INTO eu_references (
+      document_id, eu_document_id, provision_id, eu_article, reference_type, is_primary_implementation,
+      implementation_status, full_citation, reference_context
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const selectDocumentId = db.prepare('SELECT id FROM legal_documents WHERE id = ? LIMIT 1');
+  const selectEUDocumentId = db.prepare('SELECT id FROM eu_documents WHERE id = ? LIMIT 1');
+  const selectProvisionId = db.prepare(`
+    SELECT id
+    FROM legal_provisions
+    WHERE document_id = ? AND (provision_ref = ? OR section = ?)
+    LIMIT 1
+  `);
+
   // Load seed files
   if (!fs.existsSync(SEED_DIR)) {
     console.log(`No seed directory at ${SEED_DIR} -- creating empty database.`);
@@ -235,6 +311,8 @@ function buildDatabase(): void {
   let totalDocs = 0;
   let totalProvisions = 0;
   let emptyDocs = 0;
+  let totalEUDocuments = 0;
+  let totalEUReferences = 0;
 
   const loadAll = db.transaction(() => {
     for (const file of seedFiles) {
@@ -279,6 +357,64 @@ function buildDatabase(): void {
   });
 
   loadAll();
+
+  const euSeed = loadEUReferenceSeed();
+  const loadEU = db.transaction(() => {
+    for (const euDoc of euSeed.eu_documents) {
+      insertEUDocument.run(
+        euDoc.id,
+        euDoc.type,
+        euDoc.year,
+        euDoc.number,
+        euDoc.community,
+        euDoc.celex_number ?? null,
+        euDoc.title ?? null,
+        euDoc.short_name ?? null,
+        euDoc.url_eur_lex ?? null,
+        euDoc.in_force === false ? 0 : 1,
+        euDoc.amended_by ?? null,
+        euDoc.repeals ?? null,
+      );
+      totalEUDocuments += 1;
+    }
+
+    for (const ref of euSeed.references) {
+      const docExists = selectDocumentId.get(ref.document_id) as { id: string } | undefined;
+      if (!docExists) {
+        continue;
+      }
+
+      const euDocExists = selectEUDocumentId.get(ref.eu_document_id) as { id: string } | undefined;
+      if (!euDocExists) {
+        continue;
+      }
+
+      let provisionId: number | null = null;
+      if (ref.provision_ref?.trim()) {
+        const provision = selectProvisionId.get(
+          ref.document_id,
+          ref.provision_ref,
+          ref.provision_ref.replace(/^s/i, ''),
+        ) as { id: number } | undefined;
+        provisionId = provision?.id ?? null;
+      }
+
+      insertEUReference.run(
+        ref.document_id,
+        ref.eu_document_id,
+        provisionId,
+        ref.eu_article ?? null,
+        ref.reference_type ?? 'implements',
+        ref.is_primary_implementation ? 1 : 0,
+        ref.implementation_status ?? null,
+        ref.full_citation ?? null,
+        ref.reference_context ?? null,
+      );
+      totalEUReferences += 1;
+    }
+  });
+  loadEU();
+
   insertMetadata(db);
 
   db.exec('ANALYZE');
@@ -290,6 +426,7 @@ function buildDatabase(): void {
     `\nBuild complete: ${totalDocs} documents, ${totalProvisions} provisions` +
     (emptyDocs > 0 ? ` (${emptyDocs} documents with no provisions)` : ''),
   );
+  console.log(`EU build: ${totalEUDocuments} EU documents seeded, ${totalEUReferences} EU references seeded`);
   console.log(`Output: ${DB_PATH} (${(size / 1024).toFixed(1)} KB)`);
 }
 

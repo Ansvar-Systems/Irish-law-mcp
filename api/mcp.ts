@@ -3,10 +3,13 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import Database from '@ansvar/mcp-sqlite';
 import { join } from 'path';
-import { existsSync, copyFileSync, rmSync } from 'fs';
+import { existsSync, copyFileSync, readFileSync, rmSync } from 'fs';
+import { createHash } from 'crypto';
 
-import { registerTools } from '../src/tools/registry.js';
+import { registerTools, type AboutContext } from '../src/tools/registry.js';
 
+const SERVER_NAME = 'irish-legal-citations';
+const SERVER_VERSION = '1.0.0';
 const SOURCE_DB = process.env.IRISH_LAW_DB_PATH
   || join(process.cwd(), 'data', 'database.db');
 const TMP_DB = '/tmp/database.db';
@@ -28,6 +31,32 @@ function getDatabase(): InstanceType<typeof Database> {
   return db;
 }
 
+function computeAboutContext(database: InstanceType<typeof Database>): AboutContext {
+  let fingerprint = 'unknown';
+  let dbBuilt = 'unknown';
+  const dbPath = existsSync(TMP_DB) ? TMP_DB : SOURCE_DB;
+
+  try {
+    const buffer = readFileSync(dbPath);
+    fingerprint = createHash('sha256').update(buffer).digest('hex').slice(0, 12);
+  } catch {
+    // Ignore fingerprint read errors and keep "unknown"
+  }
+
+  try {
+    const row = database
+      .prepare("SELECT value FROM db_metadata WHERE key = 'built_at'")
+      .get() as { value: string } | undefined;
+    if (row?.value) {
+      dbBuilt = row.value;
+    }
+  } catch {
+    // Ignore metadata read errors and keep "unknown"
+  }
+
+  return { version: SERVER_VERSION, fingerprint, dbBuilt };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
@@ -41,8 +70,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'GET') {
     res.status(200).json({
-      name: 'irish-legal-citations',
-      version: '1.0.0',
+      name: SERVER_NAME,
+      version: SERVER_VERSION,
       protocol: 'mcp-streamable-http',
     });
     return;
@@ -55,13 +84,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const database = getDatabase();
+    const aboutContext = computeAboutContext(database);
 
     const server = new Server(
-      { name: 'irish-legal-citations', version: '1.0.0' },
+      { name: SERVER_NAME, version: SERVER_VERSION },
       { capabilities: { tools: {} } }
     );
 
-    registerTools(server, database);
+    registerTools(server, database, aboutContext);
 
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,

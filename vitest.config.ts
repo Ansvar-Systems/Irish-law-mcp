@@ -16,6 +16,9 @@ export default defineConfig({
     testTimeout: 5000,
     hookTimeout: 5000,
     fileParallelism: true,
+    sequence: {
+      concurrent: false,
+    },
     watchExclude: ['node_modules', 'dist'],
   },
 });

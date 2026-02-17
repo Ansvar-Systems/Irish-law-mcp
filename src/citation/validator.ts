@@ -1,5 +1,5 @@
 /**
- * UK legal citation validator.
+ * Irish legal citation validator.
  *
  * Validates a citation string against the database to ensure the document
  * and provision actually exist (zero-hallucination enforcement).

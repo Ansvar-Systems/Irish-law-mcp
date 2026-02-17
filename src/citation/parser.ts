@@ -1,5 +1,5 @@
 /**
- * UK legal citation parser.
+ * Irish legal citation parser.
  *
  * Parses citations like:
  *   "Section 3, Data Protection Act 2018"
@@ -34,7 +34,7 @@ export function parseCitation(citation: string): ParsedCitation {
   return {
     valid: false,
     type: 'unknown',
-    error: `Could not parse UK citation: "${trimmed}"`,
+    error: `Could not parse Irish citation: "${trimmed}"`,
   };
 }
 

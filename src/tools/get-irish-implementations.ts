@@ -65,19 +65,49 @@ export async function getIrishImplementations(
   }
 
   const rows = db.prepare(sql).all(...params) as Row[];
+  const byDocument = new Map<string, {
+    document_id: string;
+    title: string;
+    status: string;
+    reference_type: string;
+    is_primary: boolean;
+  }>();
+
+  for (const row of rows) {
+    const existing = byDocument.get(row.document_id);
+    const incomingIsPrimary = row.is_primary_implementation === 1;
+
+    if (!existing) {
+      byDocument.set(row.document_id, {
+        document_id: row.document_id,
+        title: row.title,
+        status: row.status,
+        reference_type: row.reference_type,
+        is_primary: incomingIsPrimary,
+      });
+      continue;
+    }
+
+    // Prefer direct implementation labels if multiple references exist.
+    if (existing.reference_type !== 'implements' && row.reference_type === 'implements') {
+      existing.reference_type = 'implements';
+    }
+    existing.is_primary = existing.is_primary || incomingIsPrimary;
+  }
+
+  const implementations = Array.from(byDocument.values()).sort((a, b) => {
+    if (a.is_primary !== b.is_primary) {
+      return a.is_primary ? -1 : 1;
+    }
+    return a.title.localeCompare(b.title);
+  });
 
   return {
     results: {
       eu_document_id: input.eu_document_id,
       eu_title: euDoc?.title,
-      implementations: rows.map(r => ({
-        document_id: r.document_id,
-        title: r.title,
-        status: r.status,
-        reference_type: r.reference_type,
-        is_primary: r.is_primary_implementation === 1,
-      })),
-      total: rows.length,
+      implementations,
+      total: implementations.length,
     },
     _metadata: generateResponseMetadata(db),
   };

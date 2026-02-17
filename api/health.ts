@@ -5,7 +5,8 @@ const SERVER_VERSION = '1.0.0';
 const REPO_URL = 'https://github.com/Ansvar-Systems/Ireland-law-mcp';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  const url = new URL(req.url ?? '/', `https://${req.headers.host}`);
+  const host = req.headers.host ?? 'localhost';
+  const url = new URL(req.url ?? '/', `https://${host}`);
 
   if (url.pathname === '/version' || url.searchParams.has('version')) {
     res.status(200).json({

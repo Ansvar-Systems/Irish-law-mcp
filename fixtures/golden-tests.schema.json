@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ansvar.ai/schemas/irish-law-mcp/golden-tests.schema.json",
+  "type": "object",
+  "required": ["version", "mcp_name", "tests"],
+  "properties": {
+    "version": { "type": "string" },
+    "mcp_name": { "type": "string" },
+    "description": { "type": "string" },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "category", "description", "tool", "input", "assertions"],
+        "properties": {
+          "id": { "type": "string" },
+          "category": { "type": "string" },
+          "description": { "type": "string" },
+          "tool": { "type": "string" },
+          "input": { "type": "object" },
+          "assertions": { "type": "object" }
+        }
+      }
+    }
+  }
+}

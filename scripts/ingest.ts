@@ -15,7 +15,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { fetchOireachtasPage, fetchEISBXml, type OireachtasAct } from './lib/fetcher.js';
+import { fetchOireachtasPage, fetchEISBXml } from './lib/fetcher.js';
 import { parseEISBXml } from './lib/parser.js';
 
 const __filename = fileURLToPath(import.meta.url);

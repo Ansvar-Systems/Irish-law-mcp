@@ -1,5 +1,5 @@
 /**
- * UK legal citation formatter.
+ * Irish legal citation formatter.
  *
  * Formats:
  *   full:     "Section 3, Data Protection Act 2018"

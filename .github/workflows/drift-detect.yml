@@ -1,0 +1,79 @@
+name: Drift Detection
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      drift_found: ${{ steps.run.outputs.drift_found }}
+      error_found: ${{ steps.run.outputs.error_found }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+
+      - name: Run drift detection
+        id: run
+        run: |
+          set +e
+          npm run drift:detect 2>&1 | tee drift_output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+
+          if [ "$EXIT_CODE" -eq 2 ]; then
+            echo "drift_found=true" >> "$GITHUB_OUTPUT"
+            echo "error_found=false" >> "$GITHUB_OUTPUT"
+          elif [ "$EXIT_CODE" -eq 1 ]; then
+            echo "drift_found=false" >> "$GITHUB_OUTPUT"
+            echo "error_found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "drift_found=false" >> "$GITHUB_OUTPUT"
+            echo "error_found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Keep this job successful; reporting is handled below.
+          exit 0
+
+      - name: Upload drift output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-detect-output
+          path: drift_output.txt
+          retention-days: 14
+
+  report-drift:
+    runs-on: ubuntu-latest
+    needs: drift
+    if: needs.drift.outputs.drift_found == 'true'
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Upstream drift detected - ${new Date().toISOString().split('T')[0]}`,
+              body: [
+                'Nightly drift detection reported hash mismatches for one or more anchor statutes.',
+                '',
+                'Run `npm run drift:detect` locally to inspect details.',
+                'Then update `fixtures/golden-hashes.json` if upstream changes are legitimate.',
+              ].join('\n'),
+              labels: ['data-drift', 'automated'],
+            });

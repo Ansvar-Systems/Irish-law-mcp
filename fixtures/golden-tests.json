@@ -82,7 +82,15 @@
       "description": "Get EU basis for Data Protection Act 2018 (GDPR implementation)",
       "tool": "get_eu_basis",
       "input": { "document_id": "act-2018-7" },
-      "assertions": { "result_not_empty": true }
+      "assertions": { "result_not_empty": true, "any_result_contains": ["2016/679", "GDPR"] }
+    },
+    {
+      "id": "ie-013",
+      "category": "eu_cross_reference",
+      "description": "Get Irish implementations for GDPR includes Data Protection Act 2018",
+      "tool": "get_irish_implementations",
+      "input": { "eu_document_id": "regulation:2016/679", "primary_only": true },
+      "assertions": { "result_not_empty": true, "any_result_contains": ["act-2018-7"] }
     },
     {
       "id": "ie-011",
