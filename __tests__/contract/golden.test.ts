@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createHash } from 'node:crypto';
-import { readFileSync, rmdirSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, rmdirSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -141,9 +141,15 @@ let db: InstanceType<typeof Database>;
 // ---------------------------------------------------------------------------
 
 describe.sequential(`Contract tests: ${fixture.mcp_name}`, () => {
-  beforeAll(async () => {
+  beforeAll(async (ctx) => {
     const dbPath =
       process.env['IRISH_LAW_DB_PATH'] ?? join(__dirname, '..', '..', 'data', 'database.db');
+
+    if (!existsSync(dbPath)) {
+      ctx.skip();
+      return;
+    }
+
     // Clean up stale lock dir and WAL files (WASM SQLite can't handle WAL mode)
     try { rmdirSync(dbPath + '.lock'); } catch { /* ignore */ }
     try { rmSync(dbPath + '-wal', { force: true }); } catch { /* ignore */ }
