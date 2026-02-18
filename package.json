@@ -69,6 +69,7 @@
   ],
   "author": "Ansvar Systems AB <hello@ansvar.ai>",
   "license": "Apache-2.0",
+  "mcpName": "irish-law-mcp",
   "publishConfig": {
     "access": "public"
   }

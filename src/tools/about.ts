@@ -61,7 +61,7 @@ export function getAbout(
       jurisdiction: 'Ireland (IE)',
       content_basis:
         'Irish statute text from eISB open data. ' +
-        'Covers cybersecurity, data protection, and related legislation.',
+        'Covers 3,972 Irish Acts from 1922 to present across all legal domains.',
       counts: {
         legal_documents: safeCount(db, 'SELECT COUNT(*) as count FROM legal_documents'),
         legal_provisions: safeCount(db, 'SELECT COUNT(*) as count FROM legal_provisions'),
