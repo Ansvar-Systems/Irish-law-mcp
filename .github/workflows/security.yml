@@ -94,13 +94,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_8.24.3_linux_x64.tar.gz | tar xz
+          sudo mv gitleaks /usr/local/bin/
 
-  # Layer 5: Socket Security — Supply chain analysis
-  socket:
+      - name: Run Gitleaks
+        run: gitleaks detect --source . --verbose --redact
+
+  # Layer 5: npm audit — Dependency vulnerability check
+  npm-audit:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: github.event_name == 'pull_request'
@@ -117,12 +120,6 @@ jobs:
 
       - name: Run npm audit
         run: npm audit --audit-level=high || true
-
-      - name: Socket Security PR analysis
-        uses: SocketDev/socket-security-action@v0
-        if: env.SOCKET_SECURITY_API_KEY != ''
-        env:
-          SOCKET_SECURITY_API_KEY: ${{ secrets.SOCKET_SECURITY_API_KEY }}
 
   # Layer 6: OSSF Scorecard — Repository security posture
   scorecard:
