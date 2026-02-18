@@ -17,9 +17,9 @@
     "build:db": "node --import tsx scripts/build-db.ts",
     "dev": "node --import tsx src/index.ts",
     "start": "node dist/index.js",
-    "test": "vitest run",
+    "test": "vitest run --exclude '__tests__/contract/**'",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --exclude '__tests__/contract/**'",
     "ingest": "node --import tsx scripts/ingest.ts",
     "check-updates": "node --import tsx scripts/check-updates.ts",
     "test:contract": "vitest run __tests__/contract/",
@@ -69,6 +69,7 @@
   ],
   "author": "Ansvar Systems AB <hello@ansvar.ai>",
   "license": "Apache-2.0",
+  "mcpName": "irish-law-mcp",
   "publishConfig": {
     "access": "public"
   }

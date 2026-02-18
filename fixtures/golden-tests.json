@@ -85,14 +85,6 @@
       "assertions": { "result_not_empty": true, "any_result_contains": ["2016/679", "GDPR"] }
     },
     {
-      "id": "ie-013",
-      "category": "eu_cross_reference",
-      "description": "Get Irish implementations for GDPR includes Data Protection Act 2018",
-      "tool": "get_irish_implementations",
-      "input": { "eu_document_id": "regulation:2016/679", "primary_only": true },
-      "assertions": { "result_not_empty": true, "any_result_contains": ["act-2018-7"] }
-    },
-    {
       "id": "ie-011",
       "category": "negative_test",
       "description": "Non-existent statute returns gracefully",
@@ -106,6 +98,94 @@
       "description": "Search with non-existent term handled gracefully",
       "tool": "search_legislation",
       "input": { "query": "xyznonexistentirish9999" },
+      "assertions": { "handles_gracefully": true }
+    },
+    {
+      "id": "ie-013",
+      "category": "eu_cross_reference",
+      "description": "Get Irish implementations for GDPR includes Data Protection Act 2018",
+      "tool": "get_irish_implementations",
+      "input": { "eu_document_id": "regulation:2016/679", "primary_only": true },
+      "assertions": { "result_not_empty": true, "any_result_contains": ["act-2018-7"] }
+    },
+    {
+      "id": "ie-014",
+      "category": "sources",
+      "description": "list_sources returns jurisdiction and statistics",
+      "tool": "list_sources",
+      "input": {},
+      "assertions": { "result_not_empty": true, "text_contains": ["Ireland", "eISB", "jurisdiction"] }
+    },
+    {
+      "id": "ie-015",
+      "category": "search",
+      "description": "Build legal stance for 'personal data processing' returns provisions",
+      "tool": "build_legal_stance",
+      "input": { "query": "personal data processing" },
+      "assertions": { "result_not_empty": true, "any_result_contains": ["provisions"] }
+    },
+    {
+      "id": "ie-016",
+      "category": "eu_cross_reference",
+      "description": "Search EU implementations returns results",
+      "tool": "search_eu_implementations",
+      "input": { "query": "data protection" },
+      "assertions": { "result_not_empty": true, "any_result_contains": ["2016/679"] }
+    },
+    {
+      "id": "ie-017",
+      "category": "article_retrieval",
+      "description": "Retrieve provision by statute title resolves correctly",
+      "tool": "get_provision",
+      "input": { "document_id": "Data Protection Act 2018", "section": "1" },
+      "assertions": { "result_not_empty": true, "text_not_empty": true }
+    },
+    {
+      "id": "ie-018",
+      "category": "search",
+      "description": "FTS5 quoted phrase search returns exact matches",
+      "tool": "search_legislation",
+      "input": { "query": "\"personal data\"" },
+      "assertions": { "result_not_empty": true, "min_results": 1 }
+    },
+    {
+      "id": "ie-019",
+      "category": "search",
+      "description": "Search with status filter returns only in-force provisions",
+      "tool": "search_legislation",
+      "input": { "query": "protection", "status": "in_force", "limit": 5 },
+      "assertions": { "result_not_empty": true, "min_results": 1 }
+    },
+    {
+      "id": "ie-020",
+      "category": "negative_test",
+      "description": "Empty search query returns empty results gracefully",
+      "tool": "search_legislation",
+      "input": { "query": "" },
+      "assertions": { "handles_gracefully": true }
+    },
+    {
+      "id": "ie-021",
+      "category": "eu_cross_reference",
+      "description": "Validate EU compliance for Data Protection Act 2018 against GDPR",
+      "tool": "validate_eu_compliance",
+      "input": { "document_id": "act-2018-7", "eu_document_id": "regulation:2016/679" },
+      "assertions": { "result_not_empty": true, "text_not_empty": true }
+    },
+    {
+      "id": "ie-022",
+      "category": "article_retrieval",
+      "description": "Retrieve provision from Criminal Justice (Theft and Fraud Offences) Act, 2001",
+      "tool": "get_provision",
+      "input": { "document_id": "act-2001-50", "provision_ref": "s1" },
+      "assertions": { "result_not_empty": true, "fields_present": ["results"], "text_not_empty": true }
+    },
+    {
+      "id": "ie-023",
+      "category": "negative_test",
+      "description": "Non-existent EU document returns gracefully",
+      "tool": "get_irish_implementations",
+      "input": { "eu_document_id": "directive:9999/9999" },
       "assertions": { "handles_gracefully": true }
     }
   ]

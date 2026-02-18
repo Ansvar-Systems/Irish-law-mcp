@@ -1,0 +1,46 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/schemas/server.schema.json",
+  "name": "irish-law-mcp",
+  "description": "Irish legislation via Model Context Protocol — full-text search across 3,972 Irish statutes (1922–present), provision retrieval, citation validation, and EU cross-reference endpoints. Sourced from eISB open data.",
+  "version": "1.0.0",
+  "repository": "https://github.com/Ansvar-Systems/Ireland-law-mcp",
+  "homepage": "https://github.com/Ansvar-Systems/Ireland-law-mcp#readme",
+  "author": {
+    "name": "Ansvar Systems AB",
+    "email": "hello@ansvar.ai",
+    "url": "https://ansvar.ai"
+  },
+  "license": "Apache-2.0",
+  "categories": ["legal", "compliance", "government", "eu-law"],
+  "tags": ["ireland", "irish-law", "legislation", "eisb", "statutes", "eu-directives", "gdpr", "mcp"],
+  "endpoints": {
+    "stdio": {
+      "package": "@ansvar/irish-law-mcp",
+      "command": "npx",
+      "args": ["-y", "@ansvar/irish-law-mcp"]
+    },
+    "streamableHttp": {
+      "url": "https://irish-law-mcp.vercel.app/mcp"
+    }
+  },
+  "capabilities": {
+    "tools": true,
+    "resources": false,
+    "prompts": false
+  },
+  "tools": [
+    "search_legislation",
+    "get_provision",
+    "list_sources",
+    "validate_citation",
+    "build_legal_stance",
+    "format_citation",
+    "check_currency",
+    "get_eu_basis",
+    "get_irish_implementations",
+    "search_eu_implementations",
+    "get_provision_eu_basis",
+    "validate_eu_compliance",
+    "about"
+  ]
+}

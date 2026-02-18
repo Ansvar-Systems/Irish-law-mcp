@@ -1,5 +1,5 @@
 /**
- * check_currency — Check if a Irish statute is current (in force).
+ * check_currency — Check if an Irish statute is current (in force).
  */
 
 import type { Database } from '@ansvar/mcp-sqlite';
