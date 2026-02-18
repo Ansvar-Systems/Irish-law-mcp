@@ -133,6 +133,10 @@ const fixture = JSON.parse(fixtureContent) as GoldenTestsFile;
 
 const isNightly = process.env['CONTRACT_MODE'] === 'nightly';
 
+const dbPath =
+  process.env['IRISH_LAW_DB_PATH'] ?? join(__dirname, '..', '..', 'data', 'database.db');
+const dbAvailable = existsSync(dbPath);
+
 let mcpClient: Client;
 let db: InstanceType<typeof Database>;
 
@@ -140,16 +144,8 @@ let db: InstanceType<typeof Database>;
 // Contract test runner
 // ---------------------------------------------------------------------------
 
-describe.sequential(`Contract tests: ${fixture.mcp_name}`, () => {
-  beforeAll(async (ctx) => {
-    const dbPath =
-      process.env['IRISH_LAW_DB_PATH'] ?? join(__dirname, '..', '..', 'data', 'database.db');
-
-    if (!existsSync(dbPath)) {
-      ctx.skip();
-      return;
-    }
-
+describe.skipIf(!dbAvailable).sequential(`Contract tests: ${fixture.mcp_name}`, () => {
+  beforeAll(async () => {
     // Clean up stale lock dir and WAL files (WASM SQLite can't handle WAL mode)
     try { rmdirSync(dbPath + '.lock'); } catch { /* ignore */ }
     try { rmSync(dbPath + '-wal', { force: true }); } catch { /* ignore */ }
