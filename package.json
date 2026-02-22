@@ -1,7 +1,7 @@
 {
   "name": "@ansvar/irish-law-mcp",
-  "version": "1.0.0",
-  "description": "Irish Law MCP \u2014 English legislation via Model Context Protocol",
+  "version": "1.0.1",
+  "description": "Irish Law MCP — English legislation via Model Context Protocol",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
