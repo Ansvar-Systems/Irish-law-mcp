@@ -1,7 +1,7 @@
 {
   "name": "@ansvar/irish-law-mcp",
   "version": "1.0.0",
-  "description": "Irish Law MCP — English legislation via Model Context Protocol",
+  "description": "Irish Law MCP \u2014 English legislation via Model Context Protocol",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -69,7 +69,7 @@
   ],
   "author": "Ansvar Systems AB <hello@ansvar.ai>",
   "license": "Apache-2.0",
-  "mcpName": "irish-law-mcp",
+  "mcpName": "eu.ansvar/irish-law-mcp",
   "publishConfig": {
     "access": "public"
   }
