@@ -1,5 +1,5 @@
 /**
- * get_eu_basis — Retrieve EU legal basis for a Irish statute.
+ * get_eu_basis — Retrieve EU legal basis for an Irish statute.
  */
 
 import type { Database } from '@ansvar/mcp-sqlite';
@@ -34,7 +34,15 @@ export async function getEUBasis(
 
   const resolvedId = resolveExistingStatuteId(db, input.document_id);
   if (!resolvedId) {
-    throw new Error(`Document "${input.document_id}" not found in database`);
+    return {
+      results: {
+        document_id: input.document_id,
+        document_title: '',
+        eu_documents: [],
+        statistics: { total_eu_references: 0, directive_count: 0, regulation_count: 0 },
+      },
+      _metadata: generateResponseMetadata(db),
+    };
   }
 
   const doc = db.prepare(

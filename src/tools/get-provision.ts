@@ -1,5 +1,5 @@
 /**
- * get_provision — Retrieve a specific provision from a Irish statute.
+ * get_provision — Retrieve a specific provision from an Irish statute.
  */
 
 import type { Database } from '@ansvar/mcp-sqlite';

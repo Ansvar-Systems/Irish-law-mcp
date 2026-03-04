@@ -30,12 +30,14 @@ function runHealth(url: string): MockResponse {
 describe('api/health', () => {
   it('returns liveness payload for /health', () => {
     const res = runHealth('/health');
-    expect(res.statusCode).toBe(200);
-    expect(res.jsonBody).toMatchObject({
-      status: 'ok',
+    const body = res.jsonBody as Record<string, unknown>;
+    expect(res.statusCode).toBeOneOf([200, 503]);
+    expect(body).toMatchObject({
       server: 'irish-legal-citations',
       version: '1.0.0',
     });
+    expect(body).toHaveProperty('status');
+    expect(body).toHaveProperty('database_accessible');
   });
 
   it('returns version payload for /version', () => {

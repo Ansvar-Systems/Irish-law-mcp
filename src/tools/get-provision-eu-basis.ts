@@ -32,7 +32,14 @@ export async function getProvisionEUBasis(
 
   const resolvedId = resolveExistingStatuteId(db, input.document_id);
   if (!resolvedId) {
-    throw new Error(`Document "${input.document_id}" not found in database`);
+    return {
+      results: {
+        document_id: input.document_id,
+        provision_ref: input.provision_ref,
+        eu_references: [],
+      },
+      _metadata: generateResponseMetadata(db),
+    };
   }
 
   const provision = db.prepare(
@@ -40,7 +47,14 @@ export async function getProvisionEUBasis(
   ).get(resolvedId, input.provision_ref, input.provision_ref) as { id: number; content: string } | undefined;
 
   if (!provision) {
-    throw new Error(`Provision ${input.provision_ref} not found in ${input.document_id}`);
+    return {
+      results: {
+        document_id: resolvedId,
+        provision_ref: input.provision_ref,
+        eu_references: [],
+      },
+      _metadata: generateResponseMetadata(db),
+    };
   }
 
   const sql = `

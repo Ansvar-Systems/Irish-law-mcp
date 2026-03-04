@@ -16,8 +16,8 @@ sources:
       url: 'https://www.irishstatutebook.ie/eli/'
       summary: 'Irish government open data with ELI URIs'
     coverage:
-      scope: 'Irish Acts and Statutory Instruments (cybersecurity and data protection scope)'
-      limitations: 'Initial release covers key cybersecurity legislation only'
+      scope: 'Irish Acts (3,972 statutes, 91K provisions) from 1922 to present'
+      limitations: 'Free tier includes all statutes. No case law or preparatory works.'
     languages:
       - 'en'
 

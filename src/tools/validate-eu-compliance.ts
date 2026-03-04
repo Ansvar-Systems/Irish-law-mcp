@@ -31,7 +31,16 @@ export async function validateEUCompliance(
 
   const resolvedId = resolveExistingStatuteId(db, input.document_id);
   if (!resolvedId) {
-    throw new Error(`Document "${input.document_id}" not found in database`);
+    return {
+      results: {
+        document_id: input.document_id,
+        provision_ref: input.provision_ref,
+        compliance_status: 'not_applicable' as const,
+        eu_references_found: 0,
+        warnings: [`Document "${input.document_id}" not found in database`],
+      },
+      _metadata: generateResponseMetadata(db),
+    };
   }
 
   let sql = `

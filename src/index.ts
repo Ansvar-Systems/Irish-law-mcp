@@ -12,7 +12,6 @@ import Database from '@ansvar/mcp-sqlite';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
-import { readFileSync } from 'fs';
 
 import { registerTools, type AboutContext } from './tools/registry.js';
 import { detectCapabilities, readDbMetadata } from './capabilities.js';
@@ -47,23 +46,23 @@ function getDb(): InstanceType<typeof Database> {
 }
 
 function computeAboutContext(): AboutContext {
-  const dbPath = resolveDbPath();
   let fingerprint = 'unknown';
   let dbBuilt = 'unknown';
 
   try {
-    const buf = readFileSync(dbPath);
-    fingerprint = createHash('sha256').update(buf).digest('hex').slice(0, 12);
-  } catch {
-    // DB might not exist in dev
-  }
-
-  try {
     const database = getDb();
     const row = database.prepare("SELECT value FROM db_metadata WHERE key = 'built_at'").get() as { value: string } | undefined;
-    if (row) dbBuilt = row.value;
+    if (row?.value) {
+      dbBuilt = row.value;
+      // Derive fingerprint from build timestamp + schema version (lightweight, no full-file read)
+      const schemaRow = database
+        .prepare("SELECT value FROM db_metadata WHERE key = 'schema_version'")
+        .get() as { value: string } | undefined;
+      const seed = `${row.value}:${schemaRow?.value ?? '1'}`;
+      fingerprint = createHash('sha256').update(seed).digest('hex').slice(0, 12);
+    }
   } catch {
-    // Ignore
+    // DB might not exist in dev
   }
 
   return { version: SERVER_VERSION, fingerprint, dbBuilt };

@@ -3,7 +3,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import Database from '@ansvar/mcp-sqlite';
 import { join } from 'path';
-import { existsSync, copyFileSync, readFileSync, rmSync } from 'fs';
+import { existsSync, copyFileSync, rmSync } from 'fs';
 import { createHash } from 'crypto';
 
 import { registerTools, type AboutContext } from '../src/tools/registry.js';
@@ -31,17 +31,13 @@ function getDatabase(): InstanceType<typeof Database> {
   return db;
 }
 
+let cachedContext: AboutContext | null = null;
+
 function computeAboutContext(database: InstanceType<typeof Database>): AboutContext {
+  if (cachedContext) return cachedContext;
+
   let fingerprint = 'unknown';
   let dbBuilt = 'unknown';
-  const dbPath = existsSync(TMP_DB) ? TMP_DB : SOURCE_DB;
-
-  try {
-    const buffer = readFileSync(dbPath);
-    fingerprint = createHash('sha256').update(buffer).digest('hex').slice(0, 12);
-  } catch {
-    // Ignore fingerprint read errors and keep "unknown"
-  }
 
   try {
     const row = database
@@ -49,12 +45,19 @@ function computeAboutContext(database: InstanceType<typeof Database>): AboutCont
       .get() as { value: string } | undefined;
     if (row?.value) {
       dbBuilt = row.value;
+      // Derive fingerprint from build timestamp + schema version (lightweight, no 220MB read)
+      const schemaRow = database
+        .prepare("SELECT value FROM db_metadata WHERE key = 'schema_version'")
+        .get() as { value: string } | undefined;
+      const seed = `${row.value}:${schemaRow?.value ?? '1'}`;
+      fingerprint = createHash('sha256').update(seed).digest('hex').slice(0, 12);
     }
   } catch {
-    // Ignore metadata read errors and keep "unknown"
+    // Ignore metadata read errors
   }
 
-  return { version: SERVER_VERSION, fingerprint, dbBuilt };
+  cachedContext = { version: SERVER_VERSION, fingerprint, dbBuilt };
+  return cachedContext;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
