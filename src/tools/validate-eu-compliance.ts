@@ -39,7 +39,7 @@ export async function validateEUCompliance(
         eu_references_found: 0,
         warnings: [`Document "${input.document_id}" not found in database`],
       },
-      _metadata: generateResponseMetadata(db),
+      _meta: generateResponseMetadata(db),
     };
   }
 
@@ -85,6 +85,6 @@ export async function validateEUCompliance(
       warnings,
       recommendations: recommendations.length > 0 ? recommendations : undefined,
     },
-    _metadata: generateResponseMetadata(db),
+    _meta: generateResponseMetadata(db),
   };
 }

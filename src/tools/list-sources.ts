@@ -96,6 +96,6 @@ export function listSources(db: InstanceType<typeof Database>): ToolResponse<Lis
         built_at: meta.built_at ?? null,
       },
     },
-    _metadata: generateResponseMetadata(db),
+    _meta: generateResponseMetadata(db),
   };
 }

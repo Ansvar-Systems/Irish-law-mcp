@@ -6,7 +6,7 @@ import type { Database } from '@ansvar/mcp-sqlite';
 import { buildFtsQueryVariants, buildLikePattern, sanitizeFtsInput } from '../utils/fts-query.js';
 import { normalizeAsOfDate } from '../utils/as-of-date.js';
 import { resolveDocumentId } from '../utils/statute-id.js';
-import { generateResponseMetadata, type ToolResponse } from '../utils/metadata.js';
+import { generateResponseMetadata, type ToolResponse, type Citation } from '../utils/metadata.js';
 
 export interface SearchLegislationInput {
   query: string;
@@ -25,17 +25,32 @@ export interface SearchLegislationResult {
   title: string | null;
   snippet: string;
   relevance: number;
+  _citation: Citation;
 }
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
+
+function buildItemCitation(row: Omit<SearchLegislationResult, '_citation'>): Citation {
+  return {
+    canonical_ref: `${row.document_id}/${row.provision_ref}`,
+    display_text: row.title
+      ? `${row.title}, ${row.document_title}`
+      : `${row.provision_ref}, ${row.document_title}`,
+    lookup: { tool: 'get_provision', params: { document_id: row.document_id, provision_ref: row.provision_ref } },
+  };
+}
+
+function addCitations(rows: Omit<SearchLegislationResult, '_citation'>[]): SearchLegislationResult[] {
+  return rows.map(row => ({ ...row, _citation: buildItemCitation(row) }));
+}
 
 export async function searchLegislation(
   db: Database,
   input: SearchLegislationInput,
 ): Promise<ToolResponse<SearchLegislationResult[]>> {
   if (!input.query || input.query.trim().length === 0) {
-    return { results: [], _metadata: generateResponseMetadata(db) };
+    return { results: [], _meta: generateResponseMetadata(db) };
   }
 
   const limit = Math.min(Math.max(input.limit ?? DEFAULT_LIMIT, 1), MAX_LIMIT);
@@ -53,7 +68,7 @@ export async function searchLegislation(
     if (!resolved) {
       return {
         results: [],
-        _metadata: {
+        _meta: {
           ...generateResponseMetadata(db),
           note: `No document found matching "${input.document_id}"`,
         },
@@ -94,13 +109,13 @@ export async function searchLegislation(
     params.push(fetchLimit);
 
     try {
-      const rows = db.prepare(sql).all(...params) as SearchLegislationResult[];
+      const rows = db.prepare(sql).all(...params) as Omit<SearchLegislationResult, '_citation'>[];
       if (rows.length > 0) {
         queryStrategy = ftsQuery === queryVariants[0] ? 'exact' : 'fallback';
         const deduped = deduplicateResults(rows, limit);
         return {
-          results: deduped,
-          _metadata: {
+          results: addCitations(deduped),
+          _meta: {
             ...generateResponseMetadata(db),
             ...(queryStrategy === 'fallback' ? { query_strategy: 'broadened' } : {}),
           },
@@ -145,11 +160,11 @@ export async function searchLegislation(
     likeParams.push(fetchLimit);
 
     try {
-      const rows = db.prepare(likeSql).all(...likeParams) as SearchLegislationResult[];
+      const rows = db.prepare(likeSql).all(...likeParams) as Omit<SearchLegislationResult, '_citation'>[];
       if (rows.length > 0) {
         return {
-          results: deduplicateResults(rows, limit),
-          _metadata: {
+          results: addCitations(deduplicateResults(rows, limit)),
+          _meta: {
             ...generateResponseMetadata(db),
             query_strategy: 'like_fallback',
           },
@@ -160,7 +175,7 @@ export async function searchLegislation(
     }
   }
 
-  return { results: [], _metadata: generateResponseMetadata(db) };
+  return { results: [], _meta: generateResponseMetadata(db) };
 }
 
 /**
@@ -169,11 +184,11 @@ export async function searchLegislation(
  * Keeps the first (highest-ranked) occurrence.
  */
 function deduplicateResults(
-  rows: SearchLegislationResult[],
+  rows: Omit<SearchLegislationResult, '_citation'>[],
   limit: number,
-): SearchLegislationResult[] {
+): Omit<SearchLegislationResult, '_citation'>[] {
   const seen = new Set<string>();
-  const deduped: SearchLegislationResult[] = [];
+  const deduped: Omit<SearchLegislationResult, '_citation'>[] = [];
   for (const row of rows) {
     const key = `${row.document_title}::${row.provision_ref}`;
     if (seen.has(key)) continue;

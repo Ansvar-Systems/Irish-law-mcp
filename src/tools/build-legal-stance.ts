@@ -5,7 +5,7 @@
 import type { Database } from '@ansvar/mcp-sqlite';
 import { buildFtsQueryVariants, buildLikePattern, sanitizeFtsInput } from '../utils/fts-query.js';
 import { resolveDocumentId } from '../utils/statute-id.js';
-import { generateResponseMetadata, type ToolResponse } from '../utils/metadata.js';
+import { generateResponseMetadata, type ToolResponse, type Citation } from '../utils/metadata.js';
 
 export interface BuildLegalStanceInput {
   query: string;
@@ -23,6 +23,7 @@ interface ProvisionHit {
   title: string | null;
   snippet: string;
   relevance: number;
+  _citation: Citation;
 }
 
 export interface LegalStanceResult {
@@ -34,6 +35,29 @@ export interface LegalStanceResult {
 const DEFAULT_LIMIT = 5;
 const MAX_LIMIT = 20;
 
+interface RawProvisionHit {
+  document_id: string;
+  document_title: string;
+  provision_ref: string;
+  title: string | null;
+  snippet: string;
+  relevance: number;
+}
+
+function buildItemCitation(row: RawProvisionHit): Citation {
+  return {
+    canonical_ref: `${row.document_id}/${row.provision_ref}`,
+    display_text: row.title
+      ? `${row.title}, ${row.document_title}`
+      : `${row.provision_ref}, ${row.document_title}`,
+    lookup: { tool: 'get_provision', params: { document_id: row.document_id, provision_ref: row.provision_ref } },
+  };
+}
+
+function addCitations(rows: RawProvisionHit[]): ProvisionHit[] {
+  return rows.map(row => ({ ...row, _citation: buildItemCitation(row) }));
+}
+
 export async function buildLegalStance(
   db: Database,
   input: BuildLegalStanceInput,
@@ -41,7 +65,7 @@ export async function buildLegalStance(
   if (!input.query || input.query.trim().length === 0) {
     return {
       results: { query: '', provisions: [], total_citations: 0 },
-      _metadata: generateResponseMetadata(db),
+      _meta: generateResponseMetadata(db),
     };
   }
 
@@ -58,7 +82,7 @@ export async function buildLegalStance(
     if (!resolved) {
       return {
         results: { query: input.query, provisions: [], total_citations: 0 },
-        _metadata: {
+        _meta: {
           ...generateResponseMetadata(db),
           note: `No document found matching "${input.document_id}"`,
         },
@@ -92,17 +116,17 @@ export async function buildLegalStance(
     provParams.push(fetchLimit);
 
     try {
-      const rows = db.prepare(provSql).all(...provParams) as ProvisionHit[];
+      const rows = db.prepare(provSql).all(...provParams) as RawProvisionHit[];
       if (rows.length > 0) {
         queryStrategy = ftsQuery === queryVariants[0] ? 'exact' : 'fallback';
-        const provisions = deduplicateResults(rows, limit);
+        const provisions = addCitations(deduplicateResults(rows, limit));
         return {
           results: {
             query: input.query,
             provisions,
             total_citations: provisions.length,
           },
-          _metadata: {
+          _meta: {
             ...generateResponseMetadata(db),
             ...(queryStrategy === 'fallback' ? { query_strategy: 'broadened' } : {}),
           },
@@ -140,16 +164,16 @@ export async function buildLegalStance(
     likeParams.push(fetchLimit);
 
     try {
-      const rows = db.prepare(likeSql).all(...likeParams) as ProvisionHit[];
+      const rows = db.prepare(likeSql).all(...likeParams) as RawProvisionHit[];
       if (rows.length > 0) {
-        const provisions = deduplicateResults(rows, limit);
+        const provisions = addCitations(deduplicateResults(rows, limit));
         return {
           results: {
             query: input.query,
             provisions,
             total_citations: provisions.length,
           },
-          _metadata: {
+          _meta: {
             ...generateResponseMetadata(db),
             query_strategy: 'like_fallback',
           },
@@ -162,7 +186,7 @@ export async function buildLegalStance(
 
   return {
     results: { query: input.query, provisions: [], total_citations: 0 },
-    _metadata: generateResponseMetadata(db),
+    _meta: generateResponseMetadata(db),
   };
 }
 
@@ -172,11 +196,11 @@ export async function buildLegalStance(
  * Keeps the first (highest-ranked) occurrence.
  */
 function deduplicateResults(
-  rows: ProvisionHit[],
+  rows: RawProvisionHit[],
   limit: number,
-): ProvisionHit[] {
+): RawProvisionHit[] {
   const seen = new Set<string>();
-  const deduped: ProvisionHit[] = [];
+  const deduped: RawProvisionHit[] = [];
   for (const row of rows) {
     const key = `${row.document_title}::${row.provision_ref}`;
     if (seen.has(key)) continue;

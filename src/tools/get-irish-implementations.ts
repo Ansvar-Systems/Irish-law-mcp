@@ -3,7 +3,7 @@
  */
 
 import type { Database } from '@ansvar/mcp-sqlite';
-import { generateResponseMetadata, type ToolResponse } from '../utils/metadata.js';
+import { generateResponseMetadata, type ToolResponse, type Citation } from '../utils/metadata.js';
 
 export interface GetIrishImplementationsInput {
   eu_document_id: string;
@@ -20,6 +20,7 @@ export interface GetIrishImplementationsResult {
     status: string;
     reference_type: string;
     is_primary: boolean;
+    _citation: Citation;
   }>;
   total: number;
 }
@@ -95,12 +96,21 @@ export async function getIrishImplementations(
     existing.is_primary = existing.is_primary || incomingIsPrimary;
   }
 
-  const implementations = Array.from(byDocument.values()).sort((a, b) => {
-    if (a.is_primary !== b.is_primary) {
-      return a.is_primary ? -1 : 1;
-    }
-    return a.title.localeCompare(b.title);
-  });
+  const implementations = Array.from(byDocument.values())
+    .sort((a, b) => {
+      if (a.is_primary !== b.is_primary) {
+        return a.is_primary ? -1 : 1;
+      }
+      return a.title.localeCompare(b.title);
+    })
+    .map(impl => ({
+      ...impl,
+      _citation: {
+        canonical_ref: impl.document_id,
+        display_text: impl.title,
+        lookup: { tool: 'get_provision', params: { document_id: impl.document_id } },
+      } as Citation,
+    }));
 
   return {
     results: {
@@ -109,6 +119,6 @@ export async function getIrishImplementations(
       implementations,
       total: implementations.length,
     },
-    _metadata: generateResponseMetadata(db),
+    _meta: generateResponseMetadata(db),
   };
 }

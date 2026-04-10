@@ -14,13 +14,13 @@ describe('tool registry', () => {
     expect(names).not.toContain('about');
   });
 
-  it('exposes 12 standard tools (excluding about)', () => {
-    expect(TOOLS).toHaveLength(12);
+  it('exposes 13 standard tools (excluding about)', () => {
+    expect(TOOLS).toHaveLength(13);
   });
 
-  it('exposes 13 tools total when about is included', () => {
+  it('exposes 14 tools total when about is included', () => {
     const tools = buildTools({ version: '1.0.0', fingerprint: 'abc', dbBuilt: 'now' });
-    expect(tools).toHaveLength(13);
+    expect(tools).toHaveLength(14);
   });
 
   it('includes all required standard law MCP tools', () => {
