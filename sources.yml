@@ -12,9 +12,15 @@ sources:
     update_frequency: 'monthly'
     last_ingested: '2026-02-16'
     license_or_terms:
-      type: 'Government open data'
-      url: 'https://www.irishstatutebook.ie/eli/'
-      summary: 'Irish government open data with ELI URIs'
+      type: 'Irish-PSI-Licence'
+      ansvar_code: 'Irish-PSI-Licence'
+      url: 'https://psi.gov.ie/'
+      url_pattern: '^https?://(?:www\.)?irishstatutebook\.ie/.+'
+      tri_source:
+        statutes: 'Oireachtas reproduction permission — Bills and Acts on irishstatutebook.ie (footer notice: "Oireachtas Copyright Material is reproduced with the permission of the Houses of the Oireachtas")'
+        case_law: 'courts.ie portal terms (separate basis — currently outside this MCP scope)'
+        admin: 'Irish PSI Re-use Regulations 2005 (S.I. No. 525 of 2005), default PSI licence comparable to OGL-3.0'
+      summary: "Ireland is NOT a statutory-PD jurisdiction. Tri-source basis: (1) Oireachtas permission for Bills/Acts on irishstatutebook.ie, (2) courts.ie terms for case-law, (3) Irish PSI Re-use Regulations 2005 for admin materials. This MCP currently ships the statute tier under the Oireachtas reproduction permission. CRRA 2000 ss.191-192 establish Government and Oireachtas copyright with 50-year terms; s.71 is a narrow permitted-acts exception (proceedings purpose only) — NOT a PD exclusion. See infrastructure/attribution-licenses.json Irish-PSI-Licence."
     coverage:
       scope: 'Irish Acts (3,972 statutes, 91K provisions) from 1922 to present'
       limitations: 'Free tier includes all statutes. No case law or preparatory works.'

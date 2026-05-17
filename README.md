@@ -360,9 +360,38 @@ Apache License 2.0. See [LICENSE](./LICENSE) for details.
 
 ### Data Licenses
 
-- **Statutes & Legislation:** Office of the Attorney General Ireland (public domain)
-- **Preparatory Works:** Houses of the Oireachtas (public domain)
-- **EU Metadata:** EUR-Lex (EU public domain)
+Ansvar attribution code: **`Irish-PSI-Licence`**. Ireland is NOT a
+statutory-public-domain jurisdiction. The reuse basis is tri-source.
+
+- **Statutes & Bills (Oireachtas copyright):** reproduced under the
+  Houses-of-the-Oireachtas reproduction permission published in the
+  irishstatutebook.ie footer notice: *"Oireachtas Copyright Material is
+  reproduced with the permission of the Houses of the Oireachtas."*
+  Government Copyright (CRRA 2000 s. 191) and Oireachtas Copyright
+  (s. 192) both subsist with 50-year terms.
+- **Administrative materials:** Irish PSI Re-use Regulations 2005
+  (S.I. No. 525 of 2005), implementing the EU PSI Directive. The default
+  PSI licence at [psi.gov.ie](https://psi.gov.ie/) is comparable to
+  OGL-3.0 — non-exclusive, royalty-free, commercial reuse permitted with
+  attribution.
+- **Case law (courts.ie):** separate basis under courts.ie portal terms.
+  Not currently in scope for this MCP. CRRA 2000 s. 71 is a narrow
+  permitted-acts exception (proceedings purpose only) — NOT a PD
+  exclusion.
+- **EU Metadata:** EUR-Lex (EU public-domain notice).
+
+### Coverage scope (tri-source)
+
+| Material type | Basis | In this MCP? |
+|---|---|---|
+| Statutes (Acts) | Oireachtas reproduction permission | YES |
+| Statutory instruments | Government copyright + PSI Re-use Regulations 2005 | YES |
+| Case law (HC, CA, SC) | courts.ie portal terms | NO (separate basis required) |
+| Preparatory works (Bills) | Oireachtas reproduction permission | YES |
+
+See `docs/audits/2026-05-17-eu-copyright-statutory-works-batch-1b-DE-IE-IT-NL-ES.md`
+§2 in the Ansvar architecture-documentation repo for the verbatim CRRA 2000
+ss. 191–192 + s. 71 text and the coverage analysis.
 
 ---
 
