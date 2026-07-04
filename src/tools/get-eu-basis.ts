@@ -4,7 +4,7 @@
 
 import type { Database } from '@ansvar/mcp-sqlite';
 import type { EUBasisDocument } from '../types/index.js';
-import { generateResponseMetadata, type ToolResponse } from '../utils/metadata.js';
+import { generateResponseMetadata, type ToolResponse, type Citation } from '../utils/metadata.js';
 import { resolveExistingStatuteId } from '../utils/statute-id.js';
 
 export interface GetEUBasisInput {
@@ -13,10 +13,12 @@ export interface GetEUBasisInput {
   reference_types?: string[];
 }
 
+export type EUBasisDocumentWithCitation = EUBasisDocument & { _citation: Citation };
+
 export interface GetEUBasisResult {
   document_id: string;
   document_title: string;
-  eu_documents: EUBasisDocument[];
+  eu_documents: EUBasisDocumentWithCitation[];
   statistics: {
     total_eu_references: number;
     directive_count: number;
@@ -41,7 +43,7 @@ export async function getEUBasis(
         eu_documents: [],
         statistics: { total_eu_references: 0, directive_count: 0, regulation_count: 0 },
       },
-      _metadata: generateResponseMetadata(db),
+      _meta: generateResponseMetadata(db),
     };
   }
 
@@ -78,11 +80,16 @@ export async function getEUBasis(
 
   const rows = db.prepare(sql).all(...params) as QueryRow[];
 
-  const euDocuments: EUBasisDocument[] = rows.map(row => {
-    const result: EUBasisDocument = {
+  const euDocuments: EUBasisDocumentWithCitation[] = rows.map(row => {
+    const result: EUBasisDocumentWithCitation = {
       id: row.id, type: row.type, year: row.year, number: row.number,
       community: row.community as any, reference_type: row.reference_type as any,
       is_primary_implementation: row.is_primary_implementation === 1,
+      _citation: {
+        canonical_ref: row.id,
+        display_text: row.title ?? row.short_name ?? row.id,
+        lookup: { tool: 'get_eu_basis', params: { document_id: doc.id } },
+      },
     };
     if (row.celex_number) result.celex_number = row.celex_number;
     if (row.title) result.title = row.title;
@@ -105,6 +112,6 @@ export async function getEUBasis(
         regulation_count: euDocuments.filter(d => d.type === 'regulation').length,
       },
     },
-    _metadata: generateResponseMetadata(db),
+    _meta: generateResponseMetadata(db),
   };
 }

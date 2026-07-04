@@ -10,6 +10,7 @@ import {
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import Database from '@ansvar/mcp-sqlite';
+import { generateResponseMetadata } from '../utils/metadata.js';
 
 import { searchLegislation, SearchLegislationInput } from './search-legislation.js';
 import { getProvision, GetProvisionInput } from './get-provision.js';
@@ -24,6 +25,7 @@ import { getProvisionEUBasis, GetProvisionEUBasisInput } from './get-provision-e
 import { validateEUCompliance, ValidateEUComplianceInput } from './validate-eu-compliance.js';
 import { listSources } from './list-sources.js';
 import { getAbout, type AboutContext } from './about.js';
+import { searchPreparatoryWorks, SearchPreparatoryWorksInput } from './search-preparatory-works.js';
 export type { AboutContext } from './about.js';
 
 const ABOUT_TOOL: Tool = {
@@ -339,6 +341,39 @@ export const TOOLS: Tool[] = [
     },
   },
   {
+    name: 'search_preparatory_works',
+    description:
+      'Search Irish legislative preparatory materials (explanatory memoranda, draft bills, committee reports). ' +
+      'Returns: id, document_id, title, type, and content for matching preparatory works. ' +
+      'Requires a professional-tier database; returns an upgrade notice on free-tier databases. ' +
+      'Use this to trace the legislative intent and history behind Irish statutes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Search query across preparatory work titles and content.',
+        },
+        document_id: {
+          type: 'string',
+          description: 'Filter to a specific statute by its identifier (e.g., "act-2018-7").',
+        },
+        type: {
+          type: 'string',
+          description: 'Filter by material type (e.g., "memo", "draft", "report").',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum results. Default: 10, maximum: 50.',
+          default: 10,
+          minimum: 1,
+          maximum: 50,
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
     name: 'validate_eu_compliance',
     description:
       'Validate the EU compliance status of an Irish statute or provision. ' +
@@ -422,6 +457,9 @@ export function registerTools(
         case 'get_provision_eu_basis':
           result = await getProvisionEUBasis(db, args as unknown as GetProvisionEUBasisInput);
           break;
+        case 'search_preparatory_works':
+          result = await searchPreparatoryWorks(db, args as unknown as SearchPreparatoryWorksInput);
+          break;
         case 'validate_eu_compliance':
           result = await validateEUCompliance(db, args as unknown as ValidateEUComplianceInput);
           break;
@@ -448,7 +486,7 @@ export function registerTools(
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return {
-        content: [{ type: 'text', text: `Error: ${message}` }],
+        content: [{ type: 'text', text: JSON.stringify({ error: message, _error_type: 'tool_execution_error', _meta: generateResponseMetadata(db) }, null, 2) }],
         isError: true,
       };
     }

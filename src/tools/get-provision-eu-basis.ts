@@ -38,7 +38,7 @@ export async function getProvisionEUBasis(
         provision_ref: input.provision_ref,
         eu_references: [],
       },
-      _metadata: generateResponseMetadata(db),
+      _meta: generateResponseMetadata(db),
     };
   }
 
@@ -53,7 +53,7 @@ export async function getProvisionEUBasis(
         provision_ref: input.provision_ref,
         eu_references: [],
       },
-      _metadata: generateResponseMetadata(db),
+      _meta: generateResponseMetadata(db),
     };
   }
 
@@ -92,6 +92,11 @@ export async function getProvisionEUBasis(
         return ref;
       }),
     },
-    _metadata: generateResponseMetadata(db),
+    _meta: generateResponseMetadata(db),
+    _citation: {
+      canonical_ref: `${resolvedId}/${input.provision_ref}`,
+      display_text: `${input.provision_ref}, ${resolvedId}`,
+      lookup: { tool: 'get_provision_eu_basis', params: { document_id: resolvedId, provision_ref: input.provision_ref } },
+    },
   };
 }

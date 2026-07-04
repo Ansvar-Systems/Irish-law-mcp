@@ -4,7 +4,7 @@
 
 import type { Database } from '@ansvar/mcp-sqlite';
 import { resolveExistingStatuteId } from '../utils/statute-id.js';
-import { generateResponseMetadata, type ToolResponse } from '../utils/metadata.js';
+import { generateResponseMetadata, type ToolResponse, type Citation } from '../utils/metadata.js';
 
 export interface GetProvisionInput {
   document_id: string;
@@ -35,6 +35,16 @@ interface ProvisionRow {
   section: string;
   title: string | null;
   content: string;
+}
+
+function buildProvisionCitation(row: ProvisionRow): Citation {
+  return {
+    canonical_ref: `${row.document_id}/${row.provision_ref}`,
+    display_text: row.title
+      ? `${row.title}, ${row.document_title}`
+      : `${row.provision_ref}, ${row.document_title}`,
+    lookup: { tool: 'get_provision', params: { document_id: row.document_id, provision_ref: row.provision_ref } },
+  };
 }
 
 export async function getProvision(
@@ -69,7 +79,10 @@ export async function getProvision(
 
     return {
       results: rows,
-      _metadata: generateResponseMetadata(db)
+      _meta: generateResponseMetadata(db),
+      _citation: rows.length > 0
+        ? { canonical_ref: resolvedDocumentId, display_text: rows[0].document_title, lookup: { tool: 'get_provision', params: { document_id: resolvedDocumentId } } }
+        : undefined,
     };
   }
 
@@ -91,12 +104,13 @@ export async function getProvision(
   if (!row) {
     return {
       results: null,
-      _metadata: generateResponseMetadata(db)
+      _meta: generateResponseMetadata(db)
     };
   }
 
   return {
     results: row,
-    _metadata: generateResponseMetadata(db)
+    _meta: generateResponseMetadata(db),
+    _citation: buildProvisionCitation(row),
   };
 }

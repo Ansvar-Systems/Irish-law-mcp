@@ -3,7 +3,7 @@
  */
 
 import type { Database } from '@ansvar/mcp-sqlite';
-import { generateResponseMetadata, type ToolResponse } from '../utils/metadata.js';
+import { generateResponseMetadata, type ToolResponse, type Citation } from '../utils/metadata.js';
 
 export interface SearchEUImplementationsInput {
   query?: string;
@@ -23,6 +23,7 @@ export interface SearchEUImplementationsResult {
     };
     irish_statute_count: number;
     primary_implementations: string[];
+    _citation: Citation;
   }>;
   total_results: number;
 }
@@ -84,9 +85,14 @@ export async function searchEUImplementations(
         },
         irish_statute_count: r.irish_statute_count,
         primary_implementations: r.primary_implementations?.split(',').filter(Boolean) ?? [],
+        _citation: {
+          canonical_ref: r.id,
+          display_text: r.title ?? r.short_name ?? r.id,
+          lookup: { tool: 'get_irish_implementations', params: { eu_document_id: r.id } },
+        } as Citation,
       })),
       total_results: rows.length,
     },
-    _metadata: generateResponseMetadata(db),
+    _meta: generateResponseMetadata(db),
   };
 }

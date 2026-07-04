@@ -4,8 +4,17 @@
 
 import type Database from '@ansvar/mcp-sqlite';
 
+export interface Citation {
+  canonical_ref: string;
+  display_text: string;
+  lookup: {
+    tool: string;
+    params: Record<string, string>;
+  };
+}
+
 export interface ResponseMetadata {
-  data_freshness: string;
+  data_age: string;
   disclaimer: string;
   source_authority: string;
   note?: string;
@@ -14,25 +23,21 @@ export interface ResponseMetadata {
 
 export interface ToolResponse<T> {
   results: T;
-  _metadata: ResponseMetadata;
+  _meta: ResponseMetadata;
+  _citation?: Citation;
 }
-
-const STALENESS_THRESHOLD_DAYS = 30;
 
 export function generateResponseMetadata(
   db?: InstanceType<typeof Database>
 ): ResponseMetadata {
-  let freshness = 'Database freshness unknown';
+  let data_age = 'unknown';
 
   if (db) {
     try {
       const row = db.prepare("SELECT value FROM db_metadata WHERE key = 'built_at'").get() as { value: string } | undefined;
       if (row?.value) {
         const builtDate = new Date(row.value);
-        const daysSince = Math.floor((Date.now() - builtDate.getTime()) / (1000 * 60 * 60 * 24));
-        freshness = daysSince > STALENESS_THRESHOLD_DAYS
-          ? `WARNING: Database is ${daysSince} days old. Data may be outdated.`
-          : `Database built ${daysSince} day(s) ago.`;
+        data_age = builtDate.toISOString().slice(0, 10);
       }
     } catch {
       // Ignore metadata read errors
@@ -40,7 +45,7 @@ export function generateResponseMetadata(
   }
 
   return {
-    data_freshness: freshness,
+    data_age,
     disclaimer:
       'This data is derived from eISB open data. ' +
       'Verify against official publications when legal certainty is required.',
